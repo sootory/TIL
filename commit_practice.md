@@ -8,14 +8,14 @@
 1. Git과 Github는 같다. (맞으면 O, 틀리면 X)
 
    - 답 : X
-   - 이유 : 깃은 개발 프로그램 깃허브는 이를 공유하는?
+   - 이유 : 
 
    
 
 2. 터미널 명령어 `cd .`은 현재 위치의 부모 폴더로 이동하라는 의미이다. (맞으면 O, 틀리면 X)
 
-   - 답 : O
-   - 이유 : 상위 폴더로 이동하라는 명령어
+   - 답 : x
+   - 이유 : 
 
 
 
@@ -26,11 +26,11 @@
 
 
 4. Git의 3가지 공간에는 Working Directory, Staging Area, Commits이 있다. (맞으면 O, 틀리면 X)
-   - 답 :
-   - 이유 :
+   - 답 : X
+   - 이유 : working directory, staging area, repository
 
 
 
 5. Commit ID는 중복 가능하다. (맞으면 O, 틀리면 X)
-   - 답 :
+   - 답 : X
    - 이유 : 
