@@ -12,4 +12,7 @@
    - 밀집 벡터는 사용자가 설정한 값으로 모든 단어의 벡터 표현의 차원을 맞추며, 모든 값이 실수가 됨
    - 임의의 위치에 벡터를 생성한 후 같은 문맥에서 등장하는 단어를 더 가까이 표현
    - 케라스에서는 단어를 랜덤한 값을 가지는 밀집 벡터로 변환한 후에 인공신경망의 가중치를 학습하는 것과 같은 방식으로 벡터를 학습함
+
+참고 자료: [자연어 처리란? 구글 크라우드](https://cloud.google.com/learn/what-is-natural-language-processing?hl=ko),
+  [자연어 처리 SAS](https://www.sas.com/ko_kr/insights/analytics/what-is-natural-language-processing-nlp.html),  [도서] 딥 러닝을 이용한 자연어 처리 입문
    
