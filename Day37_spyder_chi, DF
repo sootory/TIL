@@ -1,0 +1,140 @@
+# 데이터 분석 특강_spyder 활용
+## 유형별 문제 풀이
+
+1. EDA, 전체 데이터 중 특정 조건의 데이터의 비율 구하기
+
+```python
+data2 = pd.read_csv('Dataset_02.csv')
+data2.info()
+data2.columns
+# Index(['Age', 'Sex', 'BP', 'Cholesterol', 'Na_to_K', 'Drug'], dtype='object')
+
+# 1.해당 데이터에 대한 EDA를 수행하고, 여성으로 혈압이 High, Cholesterol이 Normal인 환자의 전체에 대비한 비율이 얼마인지 소수점 네 번째 자리에서 반올림하여 소수점 셋째 자리까지 기술하시오. (답안 예시) 0.123
+
+q1 = data2[['Sex', 'BP', 'Cholesterol']].value_counts(normalize=True)
+q1.index
+
+q1[('F',   'HIGH', 'NORMAL')]
+```
+
+2. 카이제곱분석
+
+```python
+2. Age, Sex, BP, Cholesterol 및 Na_to_k 값이 Drug 타입에 영향을 미치는지 확인하기 위하여 아래와 같이 데이터를 변환하고 분석을 수행하시오. 
+
+# 변수 변환
+q2 = data2.copy()
+
+q2['Age-_gr'] = np.where(q2.Age < 20, 10,  
+                         np.where(q2.Age < 30, 20, 
+                                  np.where(q2.Age < 40, 30,
+                                           np.where(q2.Age < 50, 40,
+                                                    np.where(q2.Age < 60, 50, 60)))))
+
+q2['Na_K_gr'] = np.where(q2.Na_to_K <= 10, 'Lv1',
+                         np.where(q2.Na_to_K <= 20, 'Lv2',
+                                  np.where(q2.Na_to_K <= 30, 'Lv3', 'Lv4'))) 
+
+# 변수간 독립성 검정
+
+var_list = ['Sex', 'BP', 'Cholesterol', 'Age-_gr', 'Na_K_gr']
+
+import scipy.stats as st
+
+# 변수별로 카이스퀘어검정 - 1) 빈도표 작성, 2) 카이제곱검정 수행, 3) 변수별로 반복 진행(자동화 예정)
+
+# 1) 빈도표 작성
+
+tab = pd.crosstab(index = q2['Sex'], columns = q2['Drug'])
+
+# 2) 검정 수행
+st.chi2_contingency(tab) # 자유도는 (행수-1)*(열수-1)
+
+# (2.119248418109203, # 카이스퀘어값
+#  0.7138369773987128, # p값
+# 4, # 자유도
+# array([[43.68, 11.04,  7.68,  7.68, 25.92], # 기대빈도
+#        [47.32, 11.96,  8.32,  8.32, 28.08]]))
+
+# 3) 자동화
+
+q2_out = []
+
+for i in var_list:
+    tab = pd.crosstab(index = q2[i], columns = q2['Drug'])
+    chi_out = st.chi2_contingency(tab)
+    q2_out.append([i,chi_out[0], chi_out[1]]) # 변수명, 카이제곱값, 독립성 여부 p값
+
+
+q2_out = pd.DataFrame(q2_out, columns = ['var', 'chi', 'pvalue'])
+
+q2_out.pvalue < 0.05 # T,F로 결과값 리턴
+
+q2_out2 = q2_out[q2_out.pvalue < 0.05]
+
+len(q2_out2)
+
+q2_out2.pvalue.max()
+
+q2_out2["var"].values # ['BP', 'Cholesterol', 'Age-_gr', 'Na_K_gr']
+```
+
+3. 의사결정나무 분석
+   
+```python
+from sklearn.tree import DecisionTreeClassifier, plot_tree, export_text
+
+# 변수 변환
+
+q3 = data2.copy()
+q3['Sex_cd'] = np.where(q3.Sex == 'M', 0, 1)
+q3['BP_cd'] = np.where(q3.BP == 'LOW', 0, 
+                       np.where(q3.BP == 'NORMAL', 1 , 2))
+q3['Ch_cd'] = np.where(q3.Cholesterol == 'NORMAL', 0, 1)
+
+# 의사결정나무 적용
+
+var_list = ['Age', 'Na_to_K', 'Sex_cd', 'BP_cd', 'Ch_cd']
+
+dt = DecisionTreeClassifier().fit(q3[var_list], q3['Drug']) # rule 형성
+
+# rule 시각화
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(20, 15))
+plot_tree(dt, feature_names = var_list, class_names = q3.Drug.unique(), 
+          fontsize = 15, rounded = True, filled = True)
+
+
+print(export_text(dt, feature_names = var_list)) # print를 해줘야 깔끔하게 보임
+
+# 참고_ 변수 중요도를 기준으로 변수 선택하기
+q3_var_sel = pd.Series(dt.feature_importances_, index=var_list) # 순서가 아닌 활용도에 따라(반복적 활용) 중요도가 더 영향 받을 수 있음
+
+q3_var_sel[q3_var_sel.sort_values(ascending = False).cumsum() <= 0.95].index # 중요한 변수만 뽑기
+
+dt.classes_
+pred = dt.predict(q3[var_list])
+pred_pr = dt.predict_proba(q3[var_list])
+
+# 성능 평가(1. 정확도, 2. recall, 3. precision, 4. f1 score, 5. g score, 6. confusion matrix, 7. auc)
+# 1. accuracy  = (TN+TP)/N -> 분류에서 많이 씀
+dt.score(q3[var_list], q3['Drug'])
+
+# 6. confusion matrix
+
+from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score
+
+confusion_matrix(q3['Drug'], pred, labels = dt.classes_)
+
+# 2. recall = TP/(FN+TP)
+# 3. precision = TP/(FP+TP)
+# 4. f1 score는 2,3번을 조화평균낸 것. 숫자 클수록 두 가지가 조화를 이뤄 성능이 좋다는 의미
+# 예시는 학습과 테스트데이터가 같기 때문에 정확도가 1이 나옴
+# 각 레이블별로 데이터 갯수가 다르기 때문에 전체 acc 수치만이 아닌 각 레이블별 성능 수치를 봐야 함
+# + 종합적인 성능 평가인 auc 봐야함(0.7 이상 성능 좋다고 봄->도메인마다 다름 의료는 훨씬 기준이 높음)
+
+print(classification_report(q3['Drug'], pred))
+pred_pr = dt.predict_proba(q3[var_list])
+```
